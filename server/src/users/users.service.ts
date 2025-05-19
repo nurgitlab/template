@@ -1,93 +1,61 @@
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { generateRandomString } from '../utlis';
-
-export type TUser = {
-  id: string;
-  age: number;
-  name: string;
-  role: string;
-};
+import { CreateUserDto } from './dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { PrismaService } from '../prisma/prisma.service';
+import { Role, User } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  users: TUser[] = [
-    {
-      id: '1',
-      age: 28,
-      name: 'Алексей Петров',
-      role: 'admin',
-    },
-    {
-      id: '2',
-      age: 32,
-      name: 'Мария Иванова',
-      role: 'manager',
-    },
-    {
-      id: '3',
-      age: 24,
-      name: 'Дмитрий Смирнов',
-      role: 'developer',
-    },
-    {
-      id: '4',
-      age: 41,
-      name: 'Ольга Кузнецова',
-      role: 'analyst',
-    },
-    {
-      id: '5',
-      age: 19,
-      name: 'Иван Васильев',
-      role: 'intern',
-    },
-  ];
+  constructor(private prisma: PrismaService) {}
 
-  findAll(role?: string) {
-    if (role === undefined) {
-      return this.users;
+  async findAll(role?: Role): Promise<User[]> {
+    if (role) {
+      return this.prisma.user.findMany({
+        where: { role: role },
+      });
     }
 
-    return this.users.filter((user) => user.role === role);
+    return this.prisma.user.findMany();
   }
 
-  findOne(id: string) {
-    let res: null | TUser = null;
+  async findOne(id: string): Promise<User | null> {
+    const foundUser = await this.prisma.user.findFirst({ where: { id } });
 
-    for (let i = 0; i < this.users.length; i++) {
-      if (this.users[i].id === id) {
-        res = this.users[i];
-        break;
-      }
+    if (foundUser === null) {
+      throw new NotFoundException(`User with id ${id} not found`);
     }
 
-    return res;
+    return foundUser;
   }
 
-  create(user: Omit<TUser, 'id'>) {
+  async create(createUserDto: CreateUserDto): Promise<User> {
     const newId = generateRandomString(10);
-    const newUser: TUser = { ...user, id: newId };
-    this.users.push(newUser);
 
-    return newUser;
-  }
+    const foundUser = await this.prisma.user.findFirst({
+      where: { email: createUserDto.email },
+    });
 
-  update(id: string, user: Omit<TUser, 'id'>) {
-    this.users = this.users.map((currentUser) =>
-      currentUser.id === id ? { ...currentUser, ...user } : currentUser,
-    );
-
-    return { id, ...user };
-  }
-
-  delete(id: string) {
-    let deletedUser = this.findOne(id);
-    if (deletedUser === null) {
-      return null;
+    if (foundUser) {
+      throw new ConflictException(`Email error`);
     }
 
-    this.users = this.users.filter((user) => user.id !== id);
+    return this.prisma.user.create({ data: { id: newId, ...createUserDto } });
+  }
 
-    return deletedUser;
+  async update(id: string, userData: UpdateUserDto): Promise<User> {
+    return this.prisma.user.update({ where: { id }, data: userData });
+  }
+
+  async delete(id: string): Promise<User | null> {
+    try {
+      return await this.prisma.user.delete({ where: { id } });
+    } catch (error) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
   }
 }

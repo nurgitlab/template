@@ -6,8 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
+  ValidationPipe,
 } from '@nestjs/common';
-import { TUser, UsersService } from './users.service';
+import { UsersService } from './users.service';
+import { CreateUserDto } from './dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Role } from '@prisma/client';
 
 @Controller('users') // /users декоратор
 export class UsersController {
@@ -19,20 +24,9 @@ export class UsersController {
 
   constructor(private readonly usersService: UsersService) {}
 
-  user: TUser[] = [];
-  isUserExists = (id: string) => {
-    for (const user of this.user) {
-      if (user.id === id) {
-        return user;
-      }
-    }
-
-    return null;
-  };
-
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query('role') role: Role) {
+    return this.usersService.findAll(role);
   }
 
   @Get(':id')
@@ -41,13 +35,16 @@ export class UsersController {
   }
 
   @Post()
-  newUser(@Body() user: TUser) {
-    return this.usersService.create(user);
+  newUser(@Body(ValidationPipe) createUserDto: CreateUserDto) {
+    return this.usersService.create(createUserDto);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() newData: Omit<TUser, 'id'>) {
-    return this.usersService.update(id, newData);
+  update(
+    @Param('id') id: string,
+    @Body(ValidationPipe) updateUserDto: UpdateUserDto,
+  ) {
+    return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
