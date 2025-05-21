@@ -1,61 +1,44 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
-import { generateRandomString } from '../utlis';
-import { CreateUserDto } from './dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Role, User } from '@prisma/client';
+import { CreateUserDto } from './dto';
+import { generateRandomString } from '../utlis';
+import { GetUserDto } from './dto/get-user.dto';
 
 @Injectable()
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(role?: Role): Promise<User[]> {
-    if (role) {
-      return this.prisma.user.findMany({
-        where: { role: role },
-      });
+  async createOne({ email, hashedPassword }: CreateUserDto) {
+    const userByEmail = await this.prisma.user.findUnique({ where: { email } });
+
+    if (userByEmail) {
+      throw new ConflictException('User with email already exists');
     }
 
-    return this.prisma.user.findMany();
-  }
-
-  async findOne(id: string): Promise<User | null> {
-    const foundUser = await this.prisma.user.findFirst({ where: { id } });
-
-    if (foundUser === null) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    return foundUser;
-  }
-
-  async create(createUserDto: CreateUserDto): Promise<User> {
     const newId = generateRandomString(10);
 
-    const foundUser = await this.prisma.user.findFirst({
-      where: { email: createUserDto.email },
+    const createdUser = await this.prisma.user.create({
+      data: {
+        id: newId,
+        email,
+        hashedPassword,
+      },
     });
 
-    if (foundUser) {
-      throw new ConflictException(`Email error`);
-    }
-
-    return this.prisma.user.create({ data: { id: newId, ...createUserDto } });
+    return createdUser;
   }
 
-  async update(id: string, userData: UpdateUserDto): Promise<User> {
-    return this.prisma.user.update({ where: { id }, data: userData });
-  }
-
-  async delete(id: string): Promise<User | null> {
-    try {
-      return await this.prisma.user.delete({ where: { id } });
-    } catch (error) {
-      throw new NotFoundException(`User with ID ${id} not found`);
+  async getOne({ id, email }: GetUserDto) {
+    if (!id && !email) {
+      throw new BadRequestException();
     }
+
+    const user = await this.prisma.user.findFirst({ where: { id, email } });
+
+    return user;
   }
 }
