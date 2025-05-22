@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { RegisterDto } from './dto/register.dto';
 import { UsersService } from '../users/users.service';
 import { hash, verify } from 'argon2';
@@ -31,12 +31,33 @@ export class AuthService {
       return null;
     }
 
+    if (!userByEmail.hashedPassword) {
+      //Todo - здесь можно высылать email со стандартным паролем на почту.
+      //Todo - надо при регистрации добавить подтверждение почты, иначе гг.
+      throw new ConflictException('You created account, check your email');
+    }
+
     const isValidPassword = await verify(userByEmail.hashedPassword, password);
     if (!isValidPassword) {
       return null;
     }
+    //ToDo - сюда генерировать стандартный пароль, рандомный
 
     return userByEmail;
+  }
+
+  async googleAuth(email: string, res: Response) {
+    const userByEmail = await this.usersService.getOne({ email });
+
+    if (userByEmail) {
+      return await this.generateTokens(userByEmail.id, res);
+    }
+
+    const createdUser = await this.usersService.createOne({
+      email,
+    });
+
+    return this.generateTokens(createdUser.id, res);
   }
 
   //Private methods

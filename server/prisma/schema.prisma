@@ -32,9 +32,9 @@ enum TaskStatus {
 }
 
 model User {
-  id             String @id @default(uuid())
-  email          String @unique
-  hashedPassword String @map("hashed_password") //
+  id             String  @id @default(uuid())
+  email          String  @unique
+  hashedPassword String? @map("hashed_password") //
 
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime? @updatedAt @map("updated_at") // Добавляем "?" для nullable

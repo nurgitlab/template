@@ -9,7 +9,7 @@ export class UserDto {
   email: string;
 
   @IsString()
-  hashedPassword: string;
+  hashedPassword?: string;
 }
 
 export class CreateUserDto extends OmitType(UserDto, ['id']) {}

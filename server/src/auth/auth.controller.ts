@@ -1,9 +1,18 @@
-import { Body, Controller, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../utlis';
+import { GoogleGuard } from './guards/google.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -40,5 +49,20 @@ export class AuthController {
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
     res.cookie('refreshToken', '');
+  }
+
+  @UseGuards(GoogleGuard)
+  @Get('google')
+  async google() {}
+
+  @UseGuards(GoogleGuard)
+  @Get('google/callback')
+  async googleCallback(
+    @Req() req: Request & { user: { _json: { email: string } } },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    console.log('req.user', req.user);
+
+    return await this.authService.googleAuth(req.user._json.email, res);
   }
 }
