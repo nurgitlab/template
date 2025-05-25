@@ -3,15 +3,16 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { Task } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { generateRandomString } from '../utlis';
 
 @Injectable()
 export class TasksService {
   constructor(private prisma: PrismaService) {}
 
   async create(createTaskDto: CreateTaskDto) {
-    const totalTasks = await this.prisma.task.count();
+    const newId = generateRandomString(20);
     return this.prisma.task.create({
-      data: { id: totalTasks + 1, ...createTaskDto },
+      data: { id: newId, ...createTaskDto },
     });
   }
 
@@ -19,7 +20,7 @@ export class TasksService {
     return this.prisma.task.findMany();
   }
 
-  async findOne(id: number) {
+  async findOne(id: string) {
     const foundTask = await this.prisma.task.findFirst({ where: { id } });
 
     if (foundTask === null) {
@@ -29,7 +30,7 @@ export class TasksService {
     return foundTask;
   }
 
-  async update(id: number, updateTaskDto: UpdateTaskDto) {
+  async update(id: string, updateTaskDto: UpdateTaskDto) {
     const foundTask = await this.prisma.task.findFirst({ where: { id } });
 
     if (foundTask === null) {
@@ -42,7 +43,7 @@ export class TasksService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: string) {
     const foundTask = await this.prisma.task.findFirst({ where: { id } });
 
     if (foundTask === null) {

@@ -5,6 +5,7 @@ import { hash, verify } from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
+import { MailService } from '../mail/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -12,7 +13,16 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private mailService: MailService,
   ) {}
+
+  async signUp(user: { name: string; email: string }) {
+    const token = Math.floor(1000 + Math.random() * 9000).toString();
+    // create user in db
+    // ...
+    // send confirmation mail
+    await this.mailService.sendUserConfirmation(user, token);
+  }
 
   async register({ email, password }: RegisterDto, res: Response) {
     const hashedPassword = await hash(password);

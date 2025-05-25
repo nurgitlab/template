@@ -14,8 +14,7 @@ datasource db {
 }
 
 model Task {
-  id Int @id @default(autoincrement())
-
+  id          String     @id
   title       String
   description String?
   status      TaskStatus @default(new)

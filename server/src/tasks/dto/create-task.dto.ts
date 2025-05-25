@@ -1,10 +1,10 @@
-import { IsEnum, IsInt, IsString } from 'class-validator';
+import { IsEnum, IsString } from 'class-validator';
 import { TaskStatus } from '@prisma/client';
 import { OmitType } from '@nestjs/mapped-types';
 
 export class TaskDto {
-  @IsInt()
-  id: number;
+  @IsString()
+  id: string;
 
   @IsString()
   title: string;

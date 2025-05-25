@@ -18,6 +18,11 @@ import { GoogleGuard } from './guards/google.guard';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  @Post('sendmail')
+  async sendmail(@Body() data: { email: string }) {
+    await this.authService.signUp({ name: 'Nuka', email: data.email });
+  }
+
   @Post('register')
   async register(
     @Body() registerDto: RegisterDto,
