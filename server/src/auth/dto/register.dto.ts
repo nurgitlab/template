@@ -19,4 +19,28 @@ export class RegisterDto {
   @IsNotEmpty()
   @IsDefined()
   password: string;
+
+  @IsString()
+  @IsDefined()
+  token: string;
+}
+
+export class NewPasswordDto {
+  @IsString()
+  @MinLength(6)
+  @MaxLength(255)
+  @IsNotEmpty()
+  @IsDefined()
+  password: string;
+
+  @IsString()
+  @IsDefined()
+  token: string;
+}
+
+export class SendEmailDto {
+  @IsEmail()
+  @IsDefined()
+  @IsNotEmpty()
+  email: string;
 }

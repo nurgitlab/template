@@ -8,7 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
+import { NewPasswordDto, RegisterDto, SendEmailDto } from './dto/register.dto';
 import { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { CurrentUser } from '../utlis';
@@ -17,11 +17,6 @@ import { GoogleGuard } from './guards/google.guard';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
-
-  @Post('sendmail')
-  async sendmail(@Body() data: { email: string }) {
-    await this.authService.signUp({ name: 'Nuka', email: data.email });
-  }
 
   @Post('register')
   async register(
@@ -37,7 +32,6 @@ export class AuthController {
     @CurrentUser('id') userId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    console.log('login route');
     return await this.authService.generateTokens(userId, res);
   }
 
@@ -47,7 +41,7 @@ export class AuthController {
     @CurrentUser('id') userId: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    console.log('refresh');
+    console.log('refresh', userId);
     return await this.authService.generateTokens(userId, res);
   }
 
@@ -70,4 +64,29 @@ export class AuthController {
 
     return await this.authService.googleAuth(req.user._json.email, res);
   }
+
+  //ConfirmEmail
+
+  //Send Email
+  @Post('sendmail')
+  async confirm(@Body() { email }: SendEmailDto) {
+    return await this.authService.sendConfirmEmail({ email });
+  }
+
+  @Post('newpassword')
+  async newpassword(
+    @Body() newPasswordDto: NewPasswordDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return await this.authService.newPassword(newPasswordDto, res);
+  }
+
+  // @Get('confirm/email')
+  // async confirmEmail(@Query('token') email: string) {
+  //   if (!email) {
+  //     throw new NotFoundException();
+  //   }
+  //
+  //   return await this.authService.sendConfirmEmail({ email });
+  // }
 }

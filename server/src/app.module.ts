@@ -7,6 +7,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { MailModule } from './mail/mail.module';
+import { ConfirmModule } from './confirm/confirm.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { MailModule } from './mail/mail.module';
     TasksModule,
     AuthModule,
     MailModule,
+    ConfirmModule,
   ],
   controllers: [AppController],
   providers: [AppService],

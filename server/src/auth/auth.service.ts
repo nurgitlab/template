@@ -1,11 +1,12 @@
 import { ConflictException, Injectable } from '@nestjs/common';
-import { RegisterDto } from './dto/register.dto';
+import { NewPasswordDto, RegisterDto, SendEmailDto } from './dto/register.dto';
 import { UsersService } from '../users/users.service';
 import { hash, verify } from 'argon2';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { MailService } from '../mail/mail.service';
+import { ConfirmService } from '../confirm/confirm.service';
 
 @Injectable()
 export class AuthService {
@@ -13,18 +14,45 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-    private mailService: MailService,
+    private readonly mailService: MailService,
+    private readonly confirmService: ConfirmService,
   ) {}
 
-  async signUp(user: { name: string; email: string }) {
-    const token = Math.floor(1000 + Math.random() * 9000).toString();
-    // create user in db
-    // ...
-    // send confirmation mail
-    await this.mailService.sendUserConfirmation(user, token);
+  async sendConfirmEmail({ email }: SendEmailDto) {
+    if (!email) {
+      throw new ConflictException('Empty email');
+    }
+    const confirmEmailToken = await this.confirmService.createOne({ email });
+
+    await this.mailService.sendConfirmMail(email, confirmEmailToken.id);
   }
 
-  async register({ email, password }: RegisterDto, res: Response) {
+  async newPassword({ password, token }: NewPasswordDto, res: Response) {
+    const getEmailByToken = await this.confirmService.getByToken({ token });
+    if (!getEmailByToken) {
+      throw new ConflictException('No confirm email found');
+    }
+    await this.confirmService.deleteOne({ email: getEmailByToken.email });
+    const hashedPassword = await hash(password);
+
+    const updatedUser = await this.usersService.updateOne({
+      email: getEmailByToken.email,
+      hashedPassword,
+    });
+
+    return await this.generateTokens(updatedUser.id, res);
+  }
+
+  async register({ email, password, token }: RegisterDto, res: Response) {
+    const confirmToken = await this.confirmService.getOne({ email });
+    if (!confirmToken) {
+      throw new ConflictException('No confirm email found');
+    }
+    if (confirmToken.id !== token) {
+      throw new ConflictException('No valid confirm code');
+    }
+    await this.confirmService.deleteOne({ email });
+
     const hashedPassword = await hash(password);
     const createdUser = await this.usersService.createOne({
       email,
@@ -42,6 +70,7 @@ export class AuthService {
     }
 
     if (!userByEmail.hashedPassword) {
+      //ToDo - сюда генерировать стандартный пароль, рандомный
       //Todo - здесь можно высылать email со стандартным паролем на почту.
       //Todo - надо при регистрации добавить подтверждение почты, иначе гг.
       throw new ConflictException('You created account, check your email');
@@ -51,7 +80,6 @@ export class AuthService {
     if (!isValidPassword) {
       return null;
     }
-    //ToDo - сюда генерировать стандартный пароль, рандомный
 
     return userByEmail;
   }
@@ -72,6 +100,7 @@ export class AuthService {
 
   //Private methods
   async generateTokens(userId: string, res: Response) {
+    console.log('generateTokens');
     const accessToken = await this.jwtService.signAsync(
       { userId },
       {
